@@ -1,0 +1,31 @@
+## Path:    System/Yast2
+## Description:
+## Type:    yesno
+## Default: yes
+#
+# Start automatic online update script.
+#
+START_UPDATE="yes"
+
+## Type:    string
+## Default: root@localhost
+#
+# Email address to send errors.
+#
+EMAIL="root@localhost"
+
+## Type:    string
+## Default: /var/log/systemupdate
+#
+# Logfile
+#
+LOGFILE="/var/log/systemupdate.log"
+
+## Type:     yesno
+## Default:  yes
+#
+# Run permissions script after update, to make sure that
+# all permissions are as expected after a package update.
+# (uses chkstat on newer or SuSEconfig on older systems)
+#
+FIX_PERMISSIONS='yes'
