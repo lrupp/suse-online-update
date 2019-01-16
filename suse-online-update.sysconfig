@@ -5,21 +5,21 @@
 #
 # Start automatic online update script.
 #
-START_UPDATE="yes"
+START_UPDATE='yes'
 
 ## Type:    string
 ## Default: root@localhost
 #
 # Email address to send errors.
 #
-EMAIL="root@localhost"
+EMAIL='root@localhost'
 
 ## Type:    string
 ## Default: /var/log/systemupdate
 #
 # Logfile
 #
-LOGFILE="/var/log/systemupdate.log"
+LOGFILE='/var/log/systemupdate.log'
 
 ## Type:     yesno
 ## Default:  yes
@@ -29,3 +29,27 @@ LOGFILE="/var/log/systemupdate.log"
 # (uses chkstat on newer or SuSEconfig on older systems)
 #
 FIX_PERMISSIONS='yes'
+
+## Type:     yesno
+## Default:  yes
+#
+# Cleanup some left overs from former (zypper) runs in /tmp and /var/tmp.
+#
+# Especially the following directories:
+# - /tmp/zypp-online-update1-*
+# - /var/tmp/TmpDir.*
+# - /var/tmp/zypp.*
+#
+RUN_CLEANUP='yes'
+
+## Type:     string
+## Default:  nagios
+#
+# As the mentioned directories in /var/tmp/ normally belong to the user that
+# executed zypper, the files can belong to any known user. 
+# To avoid cleaning too much, you can limit this to a specific user, so only 
+# the directories belonging to this user will be deleted. If you are sure that 
+# the script should delete all directories with the names given for the RUN_CLEANUP
+# variable, use leave this value empty.
+#
+CLEANUP_USER='nagios'

@@ -1,9 +1,39 @@
 #!/bin/bash
-# General update script for (open)SUSE hosts
-# Author: Lars Vogdt
-# BSD4 License
 #
-# $Id$
+# General update script for (open)SUSE hosts
+#
+# Copyright (C) 2008-2010, Novell, Inc.
+# Copyright (C) 2011-2014, SUSE Linux Products GmbH
+# Copyright (C) 2015-      SUSE Linux GmbH
+# Author: Lars Vogdt
+#
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# * Redistributions of source code must retain the above copyright notice, this
+#   list of conditions and the following disclaimer.
+#
+# * Redistributions in binary form must reproduce the above copyright notice,
+#   this list of conditions and the following disclaimer in the documentation
+#   and/or other materials provided with the distribution.
+#
+# * Neither the name of the Novell nor the names of its contributors may be
+#   used to endorse or promote products derived from this software without
+#   specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
 #
 
 PATH=/bin:/usr/bin:/sbin:/usr/sbin
@@ -22,85 +52,99 @@ LOGDIR=$(dirname "$LOGFILE")
 LOGNAME='suse-online-update'
 HOST=$(hostname -s)
 FQHOSTNAME=$(hostname -f)
+RUN_CLEANUP='yes'
+CLEANUP_USER=''
+
+function cleanup(){
+	find /tmp -maxdepth 1 -name "zypp-online-update1-*" -size 0 -type f -user root -delete 2>/dev/null
+	find /var/tmp/ -maxdepth 1 -type d -name "TmpDir.*" $CLEAN_USR -exec rm -rf {} \; 2>/dev/null
+	find /var/tmp/ -maxdepth 1 -type d -name "zypp.*"   $CLEAN_USR -exec rm -rf {} \; 2>/dev/null
+}
 
 function cleanup_and_exit(){
-    test -n "$TMPFILE" -a -f "$TMPFILE" && rm "$TMPFILE"
-    test -n "$LOG" -a -f "$LOG" && rm "$LOG"
-    find /tmp -maxdepth 1 -name "zypp-online-update1-*" -size 0 -type f -user root -delete 2>/dev/null
-    find /var/tmp/ -maxdepth 1 -type d -name "TmpDir.*" -user nagios -exec rm -rf {} \; 2>/dev/null
-    find /var/tmp/ -maxdepth 1 -type d -name "zypp.*" -user nagios -exec rm -rf {} \; 2>/dev/null
-    exit $1
+	test -n "$TMPFILE" -a -f "$TMPFILE" && rm "$TMPFILE"
+	test -n "$LOG" -a -f "$LOG" && rm "$LOG"
+	case "$RUN_CLEANUP" in
+		[yY]*) cleanup
+		;;
+	esac
+	exit $1
 }
 trap cleanup_and_exit 0 1 2 3 7 13 15
 
 function LOG(){
-        local MESSAGE="$1"
-        local LOG_DATE=$(date "+%b %d %H:%M:%S")
-        if [ -z "$LOGFILE" ]; then
-            echo "ERROR: LOGFILE is not defined" | $MAILX -s "[$LOGNAME] error on $FQHOSTNAME" $EMAIL
-            cleanup_and_exit 1
-        fi
-        if [ ! -d "$LOGDIR" ]; then
-                mkdir -p "$LOGDIR" || exit 1
-                echo "$LOG_DATE $HOST $LOGNAME[$$]: function LOG created $LOGDIR" > "$LOGFILE"
-        fi
-        echo "$LOG_DATE $HOST $LOGNAME[$$]: $MESSAGE" >> $LOGFILE
-        if [ "$DEBUG" = "yes" ]; then
-            echo "DEBUG:    $MESSAGE"
-        fi
+	local MESSAGE="$1"
+	local LOG_DATE=$(date "+%b %d %H:%M:%S")
+	if [ -z "$LOGFILE" ]; then
+		echo "ERROR: LOGFILE is not defined" | $MAILX -s "[$LOGNAME] error on $FQHOSTNAME" $EMAIL
+		cleanup_and_exit 1
+	fi
+	if [ ! -d "$LOGDIR" ]; then
+		mkdir -p "$LOGDIR" || exit 1
+		echo "$LOG_DATE $HOST $LOGNAME[$$]: function LOG created $LOGDIR" > "$LOGFILE"
+	fi
+	echo "$LOG_DATE $HOST $LOGNAME[$$]: $MESSAGE" >> $LOGFILE
+	if [ "$DEBUG" = "yes" ]; then
+		echo "DEBUG:    $MESSAGE"
+	fi
 }
-
 
 # source our config
 if [ -f "$DISTCONFIG" ]; then
-    . "$DISTCONFIG"
+	. "$DISTCONFIG"
 else
-    echo "$DISTCONFIG not found - using defaults" >&2
-    LOG "$DISTCONFIG not found - using defaults"
+	echo "$DISTCONFIG not found - using defaults" >&2
+	LOG "$DISTCONFIG not found - using defaults"
+fi
+
+if [ -n "$CLEANUP_USER" ]; then
+	CLEAN_USR=''
+else
+	CLEAN_USR="-user $CLEANUP_USER"
 fi
 
 case "$START_UPDATE" in
-    [yY]*)
-        TMPFILE=$(mktemp /tmp/zypp-online-update1-XXXXXX)
-        LOG=$(mktemp /tmp/zypp-online-update2-XXXXXX)
-        LOG "Starting online-update"
-        if [ -x /usr/bin/zypper ]; then # SLES10 SP2
-            zypper --non-interactive --terse up --no-confirm -t patch --skip-interactive 2>"$TMPFILE" 1>/dev/null
-            grep -v ^Restoring "$TMPFILE" | grep -v ^Loading | grep -v ^Parsing | grep -v ^Summary: | grep -v ^Nothing > "$LOG"
-        elif [ -x /usr/bin/online_update ]; then # old SLES9 host
-            # looks like SLES 9 has no option to skip interactive patches
-            # so normally, we run only a check and don't install anything.
-            # If you like to change this, remove the "--dry-run" option.
-            online_update --check --dry-run >&2 >"$TMPFILE"
-            grep -v "^No updates" "$TMPFILE" > "$LOG"
-        else
-            LOG "Binary for installing updates not found"
-            echo "Binary for installing updates not found" >&2
-            cleanup_and_exit 1
-        fi
-        if [ -s "$LOG" ]; then
-            cat "$LOG" >> "$LOGFILE"
-            case "$FIX_PERMISSIONS" in
-                [yY]*)
-                    if [ -x /usr/bin/chkstat ]; then
-                        LOG "Running /usr/bin/chkstat --system --set"
-                        /usr/bin/chkstat --system --set >/dev/null
-                    elif [ -x /sbin/SuSEconfig ]; then
-                        LOG "Running /sbin/SuSEconfig --module permissions"
-                        /sbin/SuSEconfig --module permissions >/dev/null
-                    else
-                        LOG "Could not check/set permissions - binary not found"
-                        echo "Could not check/set permissions - binary not found" >&2
-                        cleanup_and_exit 1
-                    fi
-            esac
-        else
-            LOG "Finished - no updates"
-        fi
-        cleanup_and_exit 0
-    ;;
-    *)
-        cleanup_and_exit 0
-    ;;
+	[yY]*)
+		TMPFILE=$(mktemp /tmp/zypp-online-update1-XXXXXX)
+		LOG=$(mktemp /tmp/zypp-online-update2-XXXXXX)
+		LOG "Starting online-update"
+		if [ -x /usr/bin/zypper ]; then # SLES10 SP2
+			zypper --non-interactive --terse up --no-confirm -t patch --skip-interactive 2>"$TMPFILE" 1>/dev/null
+			grep -v ^Restoring "$TMPFILE" | grep -v ^Loading | grep -v ^Parsing | grep -v ^Summary: | grep -v ^Nothing > "$LOG"
+		elif [ -x /usr/bin/online_update ]; then # old SLES9 host
+			# looks like SLES 9 has no option to skip interactive patches
+			# so normally, we run only a check and don't install anything.
+			# If you like to change this, remove the "--dry-run" option.
+			online_update --check --dry-run >&2 >"$TMPFILE"
+			grep -v "^No updates" "$TMPFILE" > "$LOG"
+		else
+			LOG "Binary for installing updates not found"
+			echo "Binary for installing updates not found" >&2
+			cleanup_and_exit 1
+		fi
+		if [ -s "$LOG" ]; then
+			cat "$LOG" >> "$LOGFILE"
+			case "$FIX_PERMISSIONS" in
+				[yY]*)
+				if [ -x /usr/bin/chkstat ]; then
+					LOG "Running /usr/bin/chkstat --system --set"
+					/usr/bin/chkstat --system --set >/dev/null 2>>"$LOG"
+				elif [ -x /sbin/SuSEconfig ]; then
+					LOG "Running /sbin/SuSEconfig --module permissions"
+					/sbin/SuSEconfig --module permissions >/dev/null 2>>"$LOG"
+				else
+					LOG "Could not check/set permissions - binary not found"
+					echo "Could not check/set permissions - binary not found" >&2
+					cleanup_and_exit 1
+				fi
+			esac
+		else
+			LOG "Finished - no updates"
+		fi
+		cleanup_and_exit 0
+	;;
+	*)
+		cleanup_and_exit 0
+	;;
 esac
 cleanup_and_exit 0
