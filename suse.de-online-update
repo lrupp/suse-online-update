@@ -81,9 +81,15 @@ function LOG(){
 	fi
 	if [ ! -d "$LOGDIR" ]; then
 		mkdir -p "$LOGDIR" || exit 1
+		touch "$LOGFILE" || { echo "Could not create $LOGFILE"; exit 1; }
 		echo "$LOG_DATE $HOST $LOGNAME[$$]: function LOG created $LOGDIR" > "$LOGFILE"
 	fi
-	echo "$LOG_DATE $HOST $LOGNAME[$$]: $MESSAGE" >> $LOGFILE
+	if [ -w "$LOGFILE" ]; then
+		echo "$LOG_DATE $HOST $LOGNAME[$$]: $MESSAGE" >> $LOGFILE
+	else
+		echo "Could not write to $LOGFILE - please fix" >&2
+		cleanup_and_exit 1
+	fi
 	if [ "$DEBUG" = "yes" ]; then
 		echo "DEBUG:    $MESSAGE"
 	fi
