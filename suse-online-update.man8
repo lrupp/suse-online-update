@@ -1,0 +1,61 @@
+.\" Contact lars@linux-schulserver.de
+.TH "suse-online-update" "8" "2019-01-17" "Lars Vogdt" "suse-online-update"
+.ie \n(.g .ds Aq \(aq
+.el       .ds Aq '
+.ss \n[.ss] 0
+.nh
+.ad l
+.de URL
+\\$2 \(laURL: \\$1 \(ra\\$3
+..
+.if \n[.g] .mso www.tmac
+.LINKSTYLE blue R 
+.SH "NAME"
+suse-online-update \- SUSE online update script
+.SH "SYNOPSIS"
+.sp
+\fBsuse-online-update\fP [\fIoptions\fP]
+.SH DESCRIPTION
+This is a simple wrapper script around zypper or other system-management
+software for installing updates automatically which doesn't require any
+interaction.
+.SH OPTIONS
+You can find the options for this script in /etc/sysconfig/suse-online-update
+.RE
+.SS "Command line options:"
+.sp
+\fB\-e\fP\ your@mail
+.RS 4
+send error messages to this Email address (default: root@localhost)
+.RE
+.sp
+\fB\-f\fP /path/to/file
+.RS 4
+use <sysconfig> as configuration file (default: /etc/sysconfig/suse-online-update)
+.RE
+.sp
+\fB\-l\fP /path/to/file
+.RS 4
+use <logfile> as log file (default: /var/log/systemupdate.log)
+.RE
+.sp
+\fB\-c\fP
+.RS 4
+run cleanup (default: yes)
+.RE
+.sp
+\fB\-p\fP          
+.RS 4
+run the permission scripts (like 'chkstat') after update (default: yes)
+.RE
+.SH BUGS
+No known bugs so far, please report any issue here:
+.sp
+.URL "https://github.com/lrupp/suse-online-update/issues" "" ""
+.SH "HOMEPAGE"
+.sp
+.URL "https://github.com/lrupp/suse-online-update" "" ""
+.SH AUTHOR
+Lars Vogdt <lars@linux-schulserver.de>
+.SH SEE ALSO
+zypper(8), mail(1)
