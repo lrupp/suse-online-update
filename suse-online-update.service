@@ -1,0 +1,7 @@
+[Unit]
+Description=Install non-interactive updates
+ConditionACPower=true
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/suse-online-update
