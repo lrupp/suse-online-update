@@ -124,9 +124,9 @@ if [ -z "$LOGFILE" ]; then
 fi
 if [ ! -d "$LOGDIR" ]; then
 	mkdir -p "$LOGDIR" || exit 1
-	touch "$LOGFILE" || { echo "Could not create $LOGFILE"; cleanup_and_exit 1; }
-	echo "$LOG_DATE $HOST $LOGNAME[$$]: function LOG created $LOGDIR" > "$LOGFILE"
+	echo "$LOG_DATE $HOST $LOGNAME[$$]: created $LOGDIR" > "$LOGFILE"
 fi
+touch "$LOGFILE" || { echo "Could not create $LOGFILE"; cleanup_and_exit 1; }
 if [ ! -w "$LOGFILE" ]; then
 	echo "Could not write to $LOGFILE - please fix" >&2
 	cleanup_and_exit 1
