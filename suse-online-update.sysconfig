@@ -53,3 +53,18 @@ RUN_CLEANUP='yes'
 # variable, use leave this value empty.
 #
 CLEANUP_USER='nagios'
+
+## Type:     string
+## Default:  patch
+#
+# Zypper works with several types of resource objects, called resolvables.
+# A resolvable might be a package, patch, pattern, product; basically
+# any kind of object with dependencies to other objects.
+#
+# The default her is 'patch', which would only install official released
+# package updates.
+#
+# If you want to update packages from 3rd party repositories (which normally
+# do not provide patches) as well, please switch to 'package' here.
+#
+ZYPPER_UPDATE_TYPE='patch'

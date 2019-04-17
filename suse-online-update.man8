@@ -1,5 +1,5 @@
 .\" Contact lars@linux-schulserver.de
-.TH "suse-online-update" "8" "2019-01-17" "Lars Vogdt" "suse-online-update"
+.TH "suse-online-update" "8" "2019-04-17" "Lars Vogdt" "suse-online-update"
 .ie \n(.g .ds Aq \(aq
 .el       .ds Aq '
 .ss \n[.ss] 0
@@ -29,6 +29,12 @@ You can find the options for this script in /etc/sysconfig/suse-online-update
 send error messages to this Email address (default: root@localhost)
 .RE
 .sp
+\fB\-t\fP <type>
+.RS 4
+use 'type' for zypper update command (default: patch)
+supported types: patch, package, pattern, product, srcpackage
+.RE
+.sp
 \fB\-f\fP /path/to/file
 .RS 4
 use <sysconfig> as configuration file (default: /etc/sysconfig/suse-online-update)
@@ -42,6 +48,11 @@ use <logfile> as log file (default: /var/log/systemupdate.log)
 \fB\-c\fP
 .RS 4
 run cleanup (default: yes)
+.RE
+.sp
+\fB\-d\fP
+.RS 4
+print debug output on console (default: no)
 .RE
 .sp
 \fB\-p\fP          

@@ -47,6 +47,7 @@ START_UPDATE='yes'
 LOGFILE='/var/log/systemupdate.log'
 EMAIL="root@localhost"
 FIX_PERMISSIONS='yes'
+ZYPPER_UPDATE_TYPE='patch'
 ##################################################
 LOGDIR=$(dirname "$LOGFILE")
 LOGNAME='suse-online-update'
@@ -54,131 +55,183 @@ HOST=$(hostname -s)
 FQHOSTNAME=$(hostname -f)
 RUN_CLEANUP='yes'
 CLEANUP_USER=''
+DEBUG='no'
 
 function cleanup(){
-	find /tmp -maxdepth 1 -name "zypp-online-update1-*" -size 0 -type f -user root -delete 2>/dev/null
-	find /var/tmp/ -maxdepth 1 -type d -name "TmpDir.*" $CLEAN_USR -exec rm -rf {} \; 2>/dev/null
-	find /var/tmp/ -maxdepth 1 -type d -name "zypp.*"   $CLEAN_USR -exec rm -rf {} \; 2>/dev/null
+    find /tmp -maxdepth 1 -name "zypp-online-update1-*" -size 0 -type f -user root -delete 2>/dev/null
+    find /var/tmp/ -maxdepth 1 -type d -name "TmpDir.*" $CLEAN_USR -exec rm -rf {} \; 2>/dev/null
+    find /var/tmp/ -maxdepth 1 -type d -name "zypp.*"   $CLEAN_USR -exec rm -rf {} \; 2>/dev/null
 }
 
 function cleanup_and_exit(){
-	test -n "$TMPFILE" -a -f "$TMPFILE" && rm "$TMPFILE"
-	test -n "$LOG" -a -f "$LOG" && rm "$LOG"
-	case "$RUN_CLEANUP" in
-		[yY]*) cleanup
-		;;
-	esac
-	exit $1
+    test -n "$TMPFILE" -a -f "$TMPFILE" && rm "$TMPFILE"
+    test -n "$TMPLOG" -a -f "$TMPLOG" && rm "$TMPLOG"
+    case "$RUN_CLEANUP" in
+        [yY]*) cleanup
+        ;;
+    esac
+    exit $1
 }
 trap cleanup_and_exit 0 1 2 3 7 13 15
 
 function LOG(){
-	local MESSAGE="$1"
-	local LOG_DATE=$(date "+%b %d %H:%M:%S")
-	echo "$LOG_DATE $HOST $LOGNAME[$$]: $MESSAGE" >> $LOGFILE
-	if [ "$DEBUG" = "yes" ]; then
-		echo "DEBUG:    $MESSAGE"
-	fi
+    local MESSAGE="$1"
+    local LOG_DATE=$(date "+%b %d %H:%M:%S")
+    echo "$LOG_DATE $HOST $LOGNAME[$$]: $MESSAGE" >> $LOGFILE
+    if [ "$DEBUG" = "yes" ]; then
+        echo "DEBUG:    $MESSAGE"
+    fi
 }
 
 function usage(){
-	echo "Usage: $0 [OPTION]"
-	echo
-	echo "       -e <email>     : send error messages to this Email address (default: $EMAIL)"
-	echo "       -f <sysconfig> : use <sysconfig> as configuration file (default: $DISTCONFIG)"
-	echo "       -l <logfile>   : use <logfile> as log file (default: $LOGFILE)"
-	echo "       -c             : run cleanup (default: $RUN_CLEANUP)"
-	echo "       -p             : run the permission scripts (like 'chkstat') after update (default: $FIX_PERMISSIONS)"
-	echo "       -h             : print this help"
-	echo
+    echo "Usage: $0 [OPTION]"
+    echo
+    echo "       -d             : print debug output on console (default: $DEBUG)"
+    echo "       -t <type>      : use 'type' for zypper update command (default: $ZYPPER_UPDATE_TYPE)"
+    echo "                        supported types: patch, package, pattern, product, srcpackage"
+    echo "       -e <email>     : send error messages to this Email address (default: $EMAIL)"
+    echo "       -f <sysconfig> : use <sysconfig> as configuration file (default: $DISTCONFIG)"
+    echo "       -l <logfile>   : use <logfile> as log file (default: $LOGFILE)"
+    echo "       -c             : run cleanup (default: $RUN_CLEANUP)"
+    echo "       -p             : run the permission scripts (like 'chkstat') after update (default: $FIX_PERMISSIONS)"
+    echo "       -h             : print this help"
+    echo
 }
 
-while getopts 'e:f:l:cph' OPT; do
-	case "$OPT" in
-		e) EMAIL="$OPTARG"
-		;;
-		f) DISTCONFIG="$OPTARG"
-		;;
-		l) LOGFILE="$OPTARG"
-		;;
-		c) RUN_CLEANUP='yes'
-		;;
-		p) FIX_PERMISSIONS='yes'
-		;;
-		h) usage; exit 0;
-		;;
-	esac
+while getopts 'de:f:l:cpht:' OPT; do
+    case "$OPT" in
+        d) DEBUG='yes'
+        ;;
+        e) EMAIL="$OPTARG"
+        ;;
+        f) DISTCONFIG="$OPTARG"
+        ;;
+        l) LOGFILE="$OPTARG"
+        ;;
+        c) RUN_CLEANUP='yes'
+        ;;
+        p) FIX_PERMISSIONS='yes'
+        ;;
+        t) ZYPPER_UPDATE_TYPE="$OPTARG"
+        ;;
+        h) usage; exit 0;
+        ;;
+    esac
 done
 shift $(( OPTIND - 1 ))
 
 # source our config
 if [ -f "$DISTCONFIG" ]; then
-	. "$DISTCONFIG"
+    . "$DISTCONFIG"
 else
-	echo "$DISTCONFIG not found - using defaults" >&2
-	if [ -w "$LOGFILE" ]; then LOG "$DISTCONFIG not found - using defaults"; fi
+    echo "$DISTCONFIG not found - using defaults" >&2
+    if [ -w "$LOGFILE" ]; then LOG "$DISTCONFIG not found - using defaults"; fi
 fi
 if [ -z "$LOGFILE" ]; then
-	echo "ERROR: LOGFILE is not defined" | $MAILX -s "[$LOGNAME] error on $FQHOSTNAME" $EMAIL
-	cleanup_and_exit 1
+    echo "ERROR: LOGFILE is not defined" | $MAILX -s "[$LOGNAME] error on $FQHOSTNAME" $EMAIL
+    cleanup_and_exit 1
 fi
 if [ ! -d "$LOGDIR" ]; then
-	mkdir -p "$LOGDIR" || exit 1
-	echo "$LOG_DATE $HOST $LOGNAME[$$]: created $LOGDIR" > "$LOGFILE"
+    mkdir -p "$LOGDIR" || exit 1
+    echo "$LOG_DATE $HOST $LOGNAME[$$]: created $LOGDIR" > "$LOGFILE"
 fi
 touch "$LOGFILE" || { echo "Could not create $LOGFILE"; cleanup_and_exit 1; }
 if [ ! -w "$LOGFILE" ]; then
-	echo "Could not write to $LOGFILE - please fix" >&2
-	cleanup_and_exit 1
+    echo "Could not write to $LOGFILE - please fix" >&2
+    cleanup_and_exit 1
 fi
 if [ -n "$CLEANUP_USER" ]; then
-	CLEAN_USR=''
+    CLEAN_USR=''
 else
-	CLEAN_USR="-user $CLEANUP_USER"
+    CLEAN_USR="-user $CLEANUP_USER"
 fi
 
 case "$START_UPDATE" in
-	[yY]*)
-		TMPFILE=$(mktemp /tmp/zypp-online-update1-XXXXXX)
-		LOG=$(mktemp /tmp/zypp-online-update2-XXXXXX)
-		LOG "Starting online-update"
-		if [ -x /usr/bin/zypper ]; then # SLES10 SP2
-			zypper --non-interactive --terse up --no-confirm -t patch --skip-interactive 2>"$TMPFILE" 1>/dev/null
-			grep -v ^Restoring "$TMPFILE" | grep -v ^Loading | grep -v ^Parsing | grep -v ^Summary: | grep -v ^Nothing > "$LOG"
-		elif [ -x /usr/bin/online_update ]; then # old SLES9 host
-			# looks like SLES 9 has no option to skip interactive patches
-			# so normally, we run only a check and don't install anything.
-			# If you like to change this, remove the "--dry-run" option.
-			online_update --check --dry-run >&2 >"$TMPFILE"
-			grep -v "^No updates" "$TMPFILE" > "$LOG"
-		else
-			LOG "Binary for installing updates not found"
-			echo "Binary for installing updates not found" >&2
-			cleanup_and_exit 1
-		fi
-		if [ -s "$LOG" ]; then
-			cat "$LOG" >> "$LOGFILE"
-			case "$FIX_PERMISSIONS" in
-				[yY]*)
-				if [ -x /usr/bin/chkstat ]; then
-					LOG "Running /usr/bin/chkstat --system --set"
-					/usr/bin/chkstat --system --set >/dev/null 2>>"$LOG"
-				elif [ -x /sbin/SuSEconfig ]; then
-					LOG "Running /sbin/SuSEconfig --module permissions"
-					/sbin/SuSEconfig --module permissions >/dev/null 2>>"$LOG"
-				else
-					LOG "Could not check/set permissions - binary not found"
-					echo "Could not check/set permissions - binary not found" >&2
-					cleanup_and_exit 1
-				fi
-			esac
-		else
-			LOG "Finished - no updates"
-		fi
-		cleanup_and_exit 0
-	;;
-	*)
-		cleanup_and_exit 0
-	;;
+    [yY]*)
+        TMPFILE=$(mktemp /tmp/zypp-online-update1-XXXXXX)
+        TMPLOG=$(mktemp /tmp/zypp-online-update2-XXXXXX)
+        MESSAGE='OK'
+        LOG "Starting online-update"
+        if [ -x /usr/bin/zypper ]; then # SLES10 SP2
+            shopt -s nocasematch
+            case "$ZYPPER_UPDATE_TYPE" in
+                'patch')
+                    UPDATETYPE='patch'
+                ;;
+                'package')
+                    UPDATETYPE='package'
+                ;;
+                'pattern')
+                    UPDATETYPE='pattern'
+                ;;
+                'product')
+                    UPDATETYPE='product'
+                ;;
+                'srcpackage')
+                    UPDATETYPE='srcpackage'
+                ;;
+                *)
+                    UPDATETYPE='patch'
+                    LOG "ERROR: Please set a correct value for ZYPPER_UPDATE_TYPE in $DISTCONFIG. Found: $ZYPPER_UPDATE_TYPE; using 'patch' for now"
+                ;;
+            esac
+            zypper --non-interactive --terse up --no-confirm -t $UPDATETYPE --skip-interactive 2>"$TMPFILE" 1>/dev/null
+            ZYPP_RET=$(echo $?)
+            case "$ZYPP_RET" in
+                0) MESSAGE='OK'
+                ;;
+                1) MESSAGE="ERROR: zypper returned with error code 1 - please see 'man 8 zypper'"
+                ;;
+                6) MESSAGE='ERROR: no update repositories defined'
+                ;;
+                7) MESSAGE='ERROR: the ZYPP library is locked - could not execute zypper'
+                ;;
+                102) MESSAGE='WARNING: one of the installed packages require a reboot of the machine'
+                ;;
+                103) LOG 'WARNING: one of the installed packages affects the package manager itself - calling myself again...'
+                     ./$0
+                     cleanup_and_exit 0 # just to be sure
+                ;;
+                106) MESSAGE='WARNING: some repositories have been skipped because of an error - please investigate'
+                ;;
+                *) MESSAGE="WARNING: zypper command exited with exit code: $ZYPP_RET - please check logs and 'man 8 zypper'"
+                ;;
+            esac
+            grep -v ^Restoring "$TMPFILE" | grep -v ^Loading | grep -v ^Parsing | grep -v ^Summary: | grep -v ^Nothing > "$TMPLOG"
+        elif [ -x /usr/bin/online_update ]; then # old SLES9 host
+            # looks like SLES 9 has no option to skip interactive patches
+            # so normally, we run only a check and don't install anything.
+            # If you like to change this, remove the "--dry-run" option.
+            online_update --check --dry-run >&2 >"$TMPFILE"
+            grep -v "^No updates" "$TMPFILE" > "$TMPLOG"
+        else
+            LOG "Binary for installing updates not found"
+            echo "Binary for installing updates not found" >&2
+            cleanup_and_exit 1
+        fi
+        if [ -s "$TMPLOG" ]; then
+            cat "$TMPLOG" >> "$LOGFILE"
+            case "$FIX_PERMISSIONS" in
+                [yY]*)
+                if [ -x /usr/bin/chkstat ]; then
+                    LOG "Running /usr/bin/chkstat --system --set"
+                    /usr/bin/chkstat --system --set >/dev/null 2>>"$LOGFILE"
+                elif [ -x /sbin/SuSEconfig ]; then
+                    LOG "Running /sbin/SuSEconfig --module permissions"
+                    /sbin/SuSEconfig --module permissions >/dev/null 2>>"$LOGFILE"
+                else
+                    LOG "Could not check/set permissions - binary not found"
+                    echo "Could not check/set permissions - binary not found" >&2
+                    cleanup_and_exit 1
+                fi
+            esac
+        else
+            LOG "Finished update - $MESSAGE"
+        fi
+        cleanup_and_exit 0
+    ;;
+    *)
+        cleanup_and_exit 0
+    ;;
 esac
 cleanup_and_exit 0
