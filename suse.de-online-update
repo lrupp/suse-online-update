@@ -48,6 +48,8 @@ LOGFILE='/var/log/systemupdate.log'
 EMAIL="root@localhost"
 FIX_PERMISSIONS='yes'
 ZYPPER_UPDATE_TYPE='patch'
+RESTART_SERVICES='no'
+IGNORE_SERVICES_FROM_RESTART='udev'
 ##################################################
 LOGDIR=$(dirname "$LOGFILE")
 LOGNAME='suse-online-update'
@@ -56,6 +58,7 @@ FQHOSTNAME=$(hostname -f)
 RUN_CLEANUP='yes'
 CLEANUP_USER=''
 DEBUG='no'
+ZYPPER='/usr/bin/zypper'
 
 function cleanup(){
     find /tmp -maxdepth 1 -name "zypp-online-update1-*" -size 0 -type f -user root -delete 2>/dev/null
@@ -87,7 +90,8 @@ function usage(){
     echo "Usage: $0 [OPTION]"
     echo
     echo "       -d             : print debug output on console (default: $DEBUG)"
-    echo "       -t <type>      : use 'type' for zypper update command (default: $ZYPPER_UPDATE_TYPE)"
+    echo "       -r             : restart services (default: $RESTART_SERVICES)"
+    echo "       -t <type>      : use 'type' for $ZYPPER update command (default: $ZYPPER_UPDATE_TYPE)"
     echo "                        supported types: patch, package, pattern, product, srcpackage"
     echo "       -e <email>     : send error messages to this Email address (default: $EMAIL)"
     echo "       -f <sysconfig> : use <sysconfig> as configuration file (default: $DISTCONFIG)"
@@ -98,7 +102,7 @@ function usage(){
     echo
 }
 
-while getopts 'de:f:l:cpht:' OPT; do
+while getopts 'de:f:l:cphrt:' OPT; do
     case "$OPT" in
         d) DEBUG='yes'
         ;;
@@ -112,6 +116,8 @@ while getopts 'de:f:l:cpht:' OPT; do
         ;;
         p) FIX_PERMISSIONS='yes'
         ;;
+        r) RESTART_SERVICES='yes'
+	;;
         t) ZYPPER_UPDATE_TYPE="$OPTARG"
         ;;
         h) usage; exit 0;
@@ -145,14 +151,21 @@ if [ -n "$CLEANUP_USER" ]; then
 else
     CLEAN_USR="-user $CLEANUP_USER"
 fi
+#
+# Start script
+#
+LOG "suse-online-update started"
 
+#
+# zypper up
+#
 case "$START_UPDATE" in
     [yY]*)
         TMPFILE=$(mktemp /tmp/zypp-online-update1-XXXXXX)
         TMPLOG=$(mktemp /tmp/zypp-online-update2-XXXXXX)
         MESSAGE='OK'
         LOG "Starting online-update"
-        if [ -x /usr/bin/zypper ]; then # SLES10 SP2
+        if [ -x "$ZYPPER" ]; then # SLES10 SP2
             shopt -s nocasematch
             case "$ZYPPER_UPDATE_TYPE" in
                 'patch')
@@ -175,26 +188,26 @@ case "$START_UPDATE" in
                     LOG "ERROR: Please set a correct value for ZYPPER_UPDATE_TYPE in $DISTCONFIG. Found: $ZYPPER_UPDATE_TYPE; using 'patch' for now"
                 ;;
             esac
-            zypper --non-interactive --terse up --no-confirm -t $UPDATETYPE --skip-interactive 2>"$TMPFILE" 1>/dev/null
+            $ZYPPER --non-interactive --terse up --no-confirm -t $UPDATETYPE --skip-interactive 2>"$TMPFILE" 1>/dev/null
             ZYPP_RET=$(echo $?)
             case "$ZYPP_RET" in
                 0) MESSAGE='OK'
                 ;;
-                1) MESSAGE="ERROR: zypper returned with error code 1 - please see 'man 8 zypper'"
+                1) MESSAGE="ERROR: $ZYPPER returned with error code 1 - please see 'man 8 zypper'"
                 ;;
                 6) MESSAGE='ERROR: no update repositories defined'
                 ;;
-                7) MESSAGE='ERROR: the ZYPP library is locked - could not execute zypper'
+                7) MESSAGE='ERROR: the ZYPP library is locked - could not execute $ZYPPER'
                 ;;
                 102) MESSAGE='WARNING: one of the installed packages require a reboot of the machine'
                 ;;
                 103) LOG 'WARNING: one of the installed packages affects the package manager itself - calling myself again...'
-                     ./$0
+                     $0
                      cleanup_and_exit 0 # just to be sure
                 ;;
                 106) MESSAGE='WARNING: some repositories have been skipped because of an error - please investigate'
                 ;;
-                *) MESSAGE="WARNING: zypper command exited with exit code: $ZYPP_RET - please check logs and 'man 8 zypper'"
+                *) MESSAGE="WARNING: $ZYPPER command exited with exit code: $ZYPP_RET - please check logs and 'man 8 zypper'"
                 ;;
             esac
             grep -v ^Restoring "$TMPFILE" | grep -v ^Loading | grep -v ^Parsing | grep -v ^Summary: | grep -v ^Nothing > "$TMPLOG"
@@ -211,27 +224,62 @@ case "$START_UPDATE" in
         fi
         if [ -s "$TMPLOG" ]; then
             cat "$TMPLOG" >> "$LOGFILE"
-            case "$FIX_PERMISSIONS" in
-                [yY]*)
-                if [ -x /usr/bin/chkstat ]; then
-                    LOG "Running /usr/bin/chkstat --system --set"
-                    /usr/bin/chkstat --system --set >/dev/null 2>>"$LOGFILE"
-                elif [ -x /sbin/SuSEconfig ]; then
-                    LOG "Running /sbin/SuSEconfig --module permissions"
-                    /sbin/SuSEconfig --module permissions >/dev/null 2>>"$LOGFILE"
-                else
-                    LOG "Could not check/set permissions - binary not found"
-                    echo "Could not check/set permissions - binary not found" >&2
-                    cleanup_and_exit 1
-                fi
-            esac
         else
             LOG "Finished update - $MESSAGE"
         fi
-        cleanup_and_exit 0
-    ;;
-    *)
-        cleanup_and_exit 0
     ;;
 esac
+#
+# chkstat --system --set
+#
+case "$FIX_PERMISSIONS" in
+    [yY]*)
+    if [ -x /usr/bin/chkstat ]; then
+        LOG "Running /usr/bin/chkstat --system --set"
+        /usr/bin/chkstat --system --set >/dev/null 2>>"$LOGFILE"
+    elif [ -x /sbin/SuSEconfig ]; then
+        LOG "Running /sbin/SuSEconfig --module permissions"
+        /sbin/SuSEconfig --module permissions >/dev/null 2>>"$LOGFILE"
+    else
+        LOG "Could not check/set permissions - binary not found"
+        echo "Could not check/set permissions - binary not found" >&2
+        cleanup_and_exit 1
+    fi
+esac
+#
+# systemctl try-restart service
+#
+case "$RESTART_SERVICES" in 
+    [yY]*)
+        if [ -x "$ZYPPER" ]; then # >SLES10 SP2 
+          $ZYPPER ps --print %s 1>/dev/null 2>&1
+          ZYPP_RET=$(echo $?)
+            case "$ZYPP_RET" in 
+                0) LOG "Restarting services"
+                   for service in $($ZYPPER ps --print %s); do
+                       for ignore in $IGNORE_SERVICES_FROM_RESTART; do
+                           if [ x"$ignore" = x"$service" ]; then
+                               LOG "Not restarting $service as it is excluded in IGNORE_SERVICES_FROM_RESTART"
+                           else
+                               LOG "Restarting $service"
+                               systemctl try-restart $service.service 1>/dev/null 2>&1
+                           fi
+                       done
+                   done
+                   # LOG "Finished service restart - OK"
+                ;;
+                2) LOG "RESTART_SERVICES is set to 'yes' in $DISTCONFIG, but your system does not support this. Please upgrade your system."
+                ;;
+                *) LOG "An error occured while trying to execute '$ZYPPER ps --print %s' - please check the output while running this command manually"
+                ;;
+            esac
+        else
+          LOG "$ZYPPER not found or not executable. Please install package zypper"
+        fi
+    ;;
+esac
+#
+# Stop script
+#
+LOG "suse-online-update finished"
 cleanup_and_exit 0

@@ -1,5 +1,5 @@
 .\" Contact lars@linux-schulserver.de
-.TH "suse-online-update" "8" "2019-04-17" "Lars Vogdt" "suse-online-update"
+.TH "suse-online-update" "8" "2021-04-21" "Lars Vogdt" "suse-online-update"
 .ie \n(.g .ds Aq \(aq
 .el       .ds Aq '
 .ss \n[.ss] 0
@@ -16,8 +16,8 @@ suse-online-update \- SUSE online update script
 .sp
 \fBsuse-online-update\fP [\fIoptions\fP]
 .SH DESCRIPTION
-This is a simple wrapper script around zypper or other system-management
-software for installing updates automatically which doesn't require any
+This is a simple wrapper script around zypper and other system-management
+software for installing updates automatically which do not require any
 interaction.
 .SH OPTIONS
 You can find the options for this script in /etc/sysconfig/suse-online-update
@@ -58,6 +58,10 @@ print debug output on console (default: no)
 \fB\-p\fP          
 .RS 4
 run the permission scripts (like 'chkstat') after update (default: yes)
+.RE
+\fB\-r\fP
+.RS 4
+restart services affected by an update (default: no)
 .RE
 .SH BUGS
 No known bugs so far, please report any issue here:

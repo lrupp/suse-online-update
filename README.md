@@ -1,6 +1,6 @@
 # suse-online-update
 
-This is a simple wrapper script around zypper or other system-management
+This is a simple wrapper script around zypper and other system-management
 software for installing updates automatically which doesn't require any
 interaction.
 
