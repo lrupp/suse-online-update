@@ -70,7 +70,7 @@ CLEANUP_USER='nagios'
 ZYPPER_UPDATE_TYPE='patch'
 
 ## Type:     yesno
-## Default:  yes
+## Default:  no
 #
 # Restart services, that are affected by a package update.
 #
@@ -78,7 +78,7 @@ ZYPPER_UPDATE_TYPE='patch'
 # services, that (still) need a restart. Some services (like udev) 
 # can be excluded from this (just see IGNORE_SERVICES_FROM_RESTART).
 #
-RESTART_SERVICES='yes'
+RESTART_SERVICES='no'
 
 ## Type:     string
 ## Default:  'udev'
