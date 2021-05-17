@@ -63,6 +63,10 @@ run the permission scripts (like 'chkstat') after update (default: yes)
 .RS 4
 restart services affected by an update (default: no)
 .RE
+\fB\-o\fP
+.RS 4
+also install optional updates (default: no)
+.RE
 .SH BUGS
 No known bugs so far, please report any issue here:
 .sp
