@@ -49,6 +49,7 @@ EMAIL="root@localhost"
 FIX_PERMISSIONS='yes'
 ZYPPER_UPDATE_TYPE='patch'
 RESTART_SERVICES='no'
+INCLUDE_OPTIONAL='no'
 IGNORE_SERVICES_FROM_RESTART='udev'
 ##################################################
 LOGDIR=$(dirname "$LOGFILE")
@@ -91,6 +92,7 @@ function usage(){
     echo
     echo "       -d             : print debug output on console (default: $DEBUG)"
     echo "       -r             : restart services (default: $RESTART_SERVICES)"
+    echo "       -o             : install optional updates (default: $INCLUDE_OPTIONAL)"
     echo "       -t <type>      : use 'type' for $ZYPPER update command (default: $ZYPPER_UPDATE_TYPE)"
     echo "                        supported types: patch, package, pattern, product, srcpackage"
     echo "       -e <email>     : send error messages to this Email address (default: $EMAIL)"
@@ -102,7 +104,7 @@ function usage(){
     echo
 }
 
-while getopts 'de:f:l:cphrt:' OPT; do
+while getopts 'de:f:l:cphrot:' OPT; do
     case "$OPT" in
         d) DEBUG='yes'
         ;;
@@ -117,6 +119,8 @@ while getopts 'de:f:l:cphrt:' OPT; do
         p) FIX_PERMISSIONS='yes'
         ;;
         r) RESTART_SERVICES='yes'
+	;;
+        o) INCLUDE_OPTIONAL='yes'
 	;;
         t) ZYPPER_UPDATE_TYPE="$OPTARG"
         ;;
@@ -188,7 +192,11 @@ case "$START_UPDATE" in
                     LOG "ERROR: Please set a correct value for ZYPPER_UPDATE_TYPE in $DISTCONFIG. Found: $ZYPPER_UPDATE_TYPE; using 'patch' for now"
                 ;;
             esac
-            $ZYPPER --non-interactive --terse up --no-confirm -t $UPDATETYPE --skip-interactive 2>"$TMPFILE" 1>/dev/null
+	    OPTIONAL=""
+	    if [ "$INCLUDE_OPTIONAL" = "yes" ] ; then
+		OPTIONAL="--with-optional"
+	    fi
+            $ZYPPER --non-interactive --terse up --no-confirm -t $UPDATETYPE $OPTIONAL --skip-interactive 2>"$TMPFILE" 1>/dev/null
             ZYPP_RET=$(echo $?)
             case "$ZYPP_RET" in
                 0) MESSAGE='OK'

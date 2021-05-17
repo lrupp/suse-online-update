@@ -90,3 +90,13 @@ RESTART_SERVICES='no'
 #
 IGNORE_SERVICES_FROM_RESTART='udev'
 
+## Type:     yesno
+## Default:  no
+#
+# Include optional updates
+#
+# If enabled, the script adds the "--with-optional" parameter
+# when calling zypper to also install updates marked as optional
+#
+INCLUDE_OPTIONAL='no'
+
