@@ -192,10 +192,10 @@ case "$START_UPDATE" in
                     LOG "ERROR: Please set a correct value for ZYPPER_UPDATE_TYPE in $DISTCONFIG. Found: $ZYPPER_UPDATE_TYPE; using 'patch' for now"
                 ;;
             esac
-	    OPTIONAL=""
-	    if [ "$INCLUDE_OPTIONAL" = "yes" ] ; then
-		OPTIONAL="--with-optional"
-	    fi
+            OPTIONAL=""
+            if [ x"$INCLUDE_OPTIONAL" == x"yes" ] && [ x"$ZYPPER_UPDATE_TYPE" != x"package" ]; then
+                OPTIONAL="--with-optional"
+            fi
             $ZYPPER --non-interactive --terse up --no-confirm -t $UPDATETYPE $OPTIONAL --skip-interactive 2>"$TMPFILE" 1>/dev/null
             ZYPP_RET=$(echo $?)
             case "$ZYPP_RET" in
