@@ -5,6 +5,7 @@
 # Copyright (C) 2008-2010, Novell, Inc.
 # Copyright (C) 2011-2014, SUSE Linux Products GmbH
 # Copyright (C) 2015-      SUSE Linux GmbH
+# Copyright (C) 2021-      SUSE Software Solutions Germany GmbH
 # Author: Lars Vogdt
 #
 # All rights reserved.
@@ -119,9 +120,9 @@ while getopts 'de:f:l:cphrot:' OPT; do
         p) FIX_PERMISSIONS='yes'
         ;;
         r) RESTART_SERVICES='yes'
-	;;
+        ;;
         o) INCLUDE_OPTIONAL='yes'
-	;;
+        ;;
         t) ZYPPER_UPDATE_TYPE="$OPTARG"
         ;;
         h) usage; exit 0;

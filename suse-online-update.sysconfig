@@ -88,6 +88,9 @@ RESTART_SERVICES='no'
 # Just include their service names here, separated with whitespaces,
 # as you would call them via systemctl (like udev.service -> udev)
 #
+# Example:
+# IGNORE_SERVICES_FROM_RESTART='udev mysql mariadb postgresql'
+#
 IGNORE_SERVICES_FROM_RESTART='udev'
 
 ## Type:     yesno
