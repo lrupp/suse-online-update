@@ -61,6 +61,7 @@ RUN_CLEANUP='yes'
 CLEANUP_USER=''
 DEBUG='no'
 ZYPPER='/usr/bin/zypper'
+ZYPPER_PS_RESTART='/usr/sbin/zypper_ps_restart'
 
 function cleanup(){
     find /tmp -maxdepth 1 -name "zypp-online-update1-*" -size 0 -type f -user root -delete 2>/dev/null
@@ -260,31 +261,16 @@ esac
 #
 case "$RESTART_SERVICES" in 
     [yY]*)
-        if [ -x "$ZYPPER" ]; then # >SLES10 SP2 
-          $ZYPPER ps --print %s 1>/dev/null 2>&1
-          ZYPP_RET=$(echo $?)
-            case "$ZYPP_RET" in 
-                0) LOG "Restarting services"
-                   for service in $($ZYPPER ps --print %s); do
-                       for ignore in $IGNORE_SERVICES_FROM_RESTART; do
-                           if [ x"$ignore" = x"$service" ]; then
-                               LOG "Not restarting $service as it is excluded in IGNORE_SERVICES_FROM_RESTART"
-                           else
-                               LOG "Restarting $service"
-                               systemctl try-restart $service.service 1>/dev/null 2>&1
-                           fi
-                       done
-                   done
-                   # LOG "Finished service restart - OK"
-                ;;
-                2) LOG "RESTART_SERVICES is set to 'yes' in $DISTCONFIG, but your system does not support this. Please upgrade your system."
-                ;;
-                *) LOG "An error occured while trying to execute '$ZYPPER ps --print %s' - please check the output while running this command manually"
-                ;;
-            esac
-        else
-          LOG "$ZYPPER not found or not executable. Please install package zypper"
-        fi
+		ZYP_PS_DEBUG=""
+		if [ "$DEBUG" = "yes" ]; then
+			ZYP_PS_DEBUG="-d"
+		fi
+		if [ -x "$ZYPPER_PS_RESTART" ]; then
+			$ZYPPER_PS_RESTART -f "$DISTCONFIG" -l "$LOGFILE" $ZYP_PS_DEBUG
+		else
+			LOG  "Could not execute $ZYPPER_PS_RESTART - please fix"
+			echo "Could not execute $ZYPPER_PS_RESTART - please fix" >&2
+		fi
     ;;
 esac
 #
