@@ -81,7 +81,7 @@ ZYPPER_UPDATE_TYPE='patch'
 RESTART_SERVICES='no'
 
 ## Type:     string
-## Default:  'udev'
+## Default:  'dbus udev'
 #
 # If RESTART_SERVICES is set to 'yes', you might still want to 
 # exclude some services from being automatically restarted.
@@ -91,7 +91,7 @@ RESTART_SERVICES='no'
 # Example:
 # IGNORE_SERVICES_FROM_RESTART='udev mysql mariadb postgresql'
 #
-IGNORE_SERVICES_FROM_RESTART='udev'
+IGNORE_SERVICES_FROM_RESTART='dbus udev'
 
 ## Type:     yesno
 ## Default:  no

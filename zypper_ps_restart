@@ -43,7 +43,7 @@ DISTCONFIG='/etc/sysconfig/suse-online-update'
 # Don't change them here! Use $DISCONFIG instead
 ##################################################
 LOGFILE='/var/log/systemupdate.log'
-IGNORE_SERVICES_FROM_RESTART='udev'
+IGNORE_SERVICES_FROM_RESTART='dbus udev'
 ##################################################
 LOGDIR=$(dirname "$LOGFILE")
 LOGNAME='zypper_ps_restart'
