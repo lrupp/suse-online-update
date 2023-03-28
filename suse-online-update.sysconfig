@@ -80,6 +80,16 @@ ZYPPER_UPDATE_TYPE='patch'
 #
 RESTART_SERVICES='no'
 
+## Type:     yesno
+## Default:  no
+#
+# Use systemctl try-reload-or-restart to prefer reloading
+#
+# If the unit supports reload and is running, do a reload instead
+# of a restart.
+#
+RESTART_PREFER_RELOAD='yes'
+
 ## Type:     string
 ## Default:  'dbus udev'
 #

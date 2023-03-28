@@ -110,6 +110,12 @@ if [ ! -w "$LOGFILE" ]; then
     cleanup_and_exit 1
 fi
 
+if [ "$RESTART_PREFER_RELOAD" = "yes" ] ; then
+    RESTART_CMD="try-reload-or-restart"
+else
+    RESTART_CMD="try-restart"
+fi
+
 #
 # Start script
 #
@@ -137,7 +143,7 @@ if [ -x "$ZYPPER" ]; then # >SLES10 SP2
 				  ;;
 				  *)
 					LOG "Restarting $service"
-					systemctl try-restart $service.service || LOG "$service restart failed" >&2; 
+					systemctl $RESTART_CMD $service.service || LOG "$service restart failed" >&2; 
 				  ;;
 				esac
 			  fi
