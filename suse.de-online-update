@@ -198,7 +198,11 @@ case "$START_UPDATE" in
             if [ x"$INCLUDE_OPTIONAL" == x"yes" ] && [ x"$ZYPPER_UPDATE_TYPE" != x"package" ]; then
                 OPTIONAL="--with-optional"
             fi
-            $ZYPPER --non-interactive --terse up --no-confirm -t $UPDATETYPE $OPTIONAL --skip-interactive 2>"$TMPFILE" 1>/dev/null
+            if [ "$UPDATETYPE" == "patch" ] && [ "$OPTIONAL" == "--with-optional" ] ; then
+                $ZYPPER --non-interactive --terse $UPDATETYPE --no-confirm $OPTIONAL --skip-interactive 2>"$TMPFILE" 1>/dev/null
+            else
+                $ZYPPER --non-interactive --terse up --no-confirm -t $UPDATETYPE $OPTIONAL --skip-interactive 2>"$TMPFILE" 1>/dev/null
+            fi
             ZYPP_RET=$(echo $?)
             case "$ZYPP_RET" in
                 0) MESSAGE='OK'
