@@ -1,0 +1,7 @@
+rebuild_master:
+  steps:
+    - rebuild_package:
+        project: home:lrupp
+        package: suse-online-update
+  filters:
+    event: push
