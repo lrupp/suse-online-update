@@ -265,16 +265,16 @@ esac
 #
 case "$RESTART_SERVICES" in 
     [yY]*)
-		ZYP_PS_DEBUG=""
-		if [ "$DEBUG" = "yes" ]; then
-			ZYP_PS_DEBUG="-d"
-		fi
-		if [ -x "$ZYPPER_PS_RESTART" ]; then
-			$ZYPPER_PS_RESTART -f "$DISTCONFIG" -l "$LOGFILE" $ZYP_PS_DEBUG
-		else
-			LOG  "Could not execute $ZYPPER_PS_RESTART - please fix"
-			echo "Could not execute $ZYPPER_PS_RESTART - please fix" >&2
-		fi
+        ZYP_PS_DEBUG=""
+        if [ "$DEBUG" = "yes" ]; then
+            ZYP_PS_DEBUG="-d"
+        fi
+        if [ -x "$ZYPPER_PS_RESTART" ]; then
+            $ZYPPER_PS_RESTART -f "$DISTCONFIG" -l "$LOGFILE" $ZYP_PS_DEBUG
+        else
+            LOG  "Could not execute $ZYPPER_PS_RESTART - please fix"
+            echo "Could not execute $ZYPPER_PS_RESTART - please fix" >&2
+        fi
     ;;
 esac
 #

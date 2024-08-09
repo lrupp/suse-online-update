@@ -69,8 +69,8 @@ function usage(){
     echo "Usage: $0 [OPTION]"
     echo
     echo "       -d             : print debug output on console (default: $DEBUG)"
-	echo "       -f <sysconfig> : use <sysconfig> as configuration file (default: $DISTCONFIG)"
-	echo "       -l <logfile>   : use <logfile> as log file (default: $LOGFILE)"
+    echo "       -f <sysconfig> : use <sysconfig> as configuration file (default: $DISTCONFIG)"
+    echo "       -l <logfile>   : use <logfile> as log file (default: $LOGFILE)"
     echo "       -h             : print this help"
     echo
 }
@@ -81,9 +81,9 @@ while getopts 'df:l:h' OPT; do
         ;;
         f) DISTCONFIG="$OPTARG"
         ;;
-		l) LOGFILE="$OPTARG"
+        l) LOGFILE="$OPTARG"
         ;;
-		h) usage; exit 0;
+        h) usage; exit 0;
         ;;
     esac
 done
@@ -93,8 +93,8 @@ shift $(( OPTIND - 1 ))
 if [ -r "$DISTCONFIG" ]; then
     . "$DISTCONFIG"
 else
-	echo "$DISTCONFIG not found - using defaults" >&2
-	if [ -w "$LOGFILE" ]; then LOG "$DISTCONFIG not found - using defaults"; fi
+    echo "$DISTCONFIG not found - using defaults" >&2
+    if [ -w "$LOGFILE" ]; then LOG "$DISTCONFIG not found - using defaults"; fi
 fi
 if [ -z "$LOGFILE" ]; then
     echo "ERROR: LOGFILE is not defined" | $MAILX -s "[$LOGNAME] error on $FQHOSTNAME" $EMAIL
@@ -120,42 +120,41 @@ fi
 #
 LOG "zypper_ps_restart started"
 if [ -x "$ZYPPER" ]; then # >SLES10 SP2
-	$ZYPPER ps --print %s 1>/dev/null 2>&1
-	ZYPP_RET=$(echo $?)
-	case "$ZYPP_RET" in
-		0) 	for service in $(zypper ps --print %s); do 
-			    if [[ $IGNORE_SERVICES_FROM_RESTART =~ (^|[[:space:]])$service($|[[:space:]]) ]]; then
-				   echo "Will not handle $service, as it is in IGNORE_SERVICES_FROM_RESTART list." 
-		    	else
-				  case "$service" in 
-					'firewalld')
-					  if systemctl -q is-enabled fail2ban ; then
-						LOG "Restarting services firewalld and fail2ban"
-						systemctl stop fail2ban
-						systemctl stop firewalld
-						systemctl start firewalld
-						systemctl start fail2ban
-					  else
-						LOG "Restarting firewalld"
-						systemctl try-reload-or-restart firewalld
-					  fi
-				  ;;
-				  *)
-					LOG "Restarting $service"
-					systemctl $RESTART_CMD $service.service || LOG "$service $RESTART_CMD failed" >&2; 
-				  ;;
-				esac
-			  fi
-			done
-		;;
-		2) LOG "RESTART_SERVICES is set to 'yes' in $DISTCONFIG, but your system does not support this. Please upgrade your system."
-		;;
-		*) LOG "An error occured while trying to execute '$ZYPPER ps --print %s' - please check the output while running this command manually"
-		;;
-	esac
+    $ZYPPER ps --print %s 1>/dev/null 2>&1
+    ZYPP_RET=$(echo $?)
+    case "$ZYPP_RET" in
+        0) for service in $(zypper ps --print %s); do 
+             if [[ $IGNORE_SERVICES_FROM_RESTART =~ (^|[[:space:]])$service($|[[:space:]]) ]]; then
+                 echo "Will not handle $service, as it is in IGNORE_SERVICES_FROM_RESTART list." 
+             else
+                 case "$service" in 
+                   'firewalld')
+                     if systemctl -q is-enabled fail2ban ; then
+                        LOG "Restarting services firewalld and fail2ban"
+                        systemctl stop fail2ban
+                        systemctl stop firewalld
+                        systemctl start firewalld
+                        systemctl start fail2ban
+                      else
+                        LOG "Restarting firewalld"
+                        systemctl try-reload-or-restart firewalld
+                      fi
+                   ;;
+                   *)
+                      LOG "Restarting $service"
+                      systemctl $RESTART_CMD $service.service || LOG "$service $RESTART_CMD failed" >&2; 
+                   ;;
+                 esac
+             fi
+           done
+        ;;
+        2) LOG "RESTART_SERVICES is set to 'yes' in $DISTCONFIG, but your system does not support this. Please upgrade your system."
+        ;;
+        *) LOG "An error occured while trying to execute '$ZYPPER ps --print %s' - please check the output while running this command manually"
+        ;;
+    esac
 else
-	LOG "$ZYPPER not found or not executable. Please install package zypper"
+    LOG "$ZYPPER not found or not executable. Please install package zypper"
 fi
 LOG "zypper_ps_restart finished"
 cleanup_and_exit 0
-
