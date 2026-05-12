@@ -52,6 +52,7 @@ ZYPPER_UPDATE_TYPE='patch'
 RESTART_SERVICES='no'
 INCLUDE_OPTIONAL='no'
 IGNORE_SERVICES_FROM_RESTART='dbus udev'
+EXCLUDE_RECOMMENDS='no'
 ##################################################
 LOGDIR=$(dirname "$LOGFILE")
 LOGNAME='suse-online-update'
@@ -95,6 +96,7 @@ function usage(){
     echo "       -d             : print debug output on console (default: $DEBUG)"
     echo "       -r             : restart services (default: $RESTART_SERVICES)"
     echo "       -o             : install optional updates (default: $INCLUDE_OPTIONAL)"
+    echo "       -n             : install w/o recommended packages (default: $EXCLUDE_RECOMMENDS)"
     echo "       -t <type>      : use 'type' for $ZYPPER update command (default: $ZYPPER_UPDATE_TYPE)"
     echo "                        supported types: patch, package, pattern, product, srcpackage"
     echo "       -e <email>     : send error messages to this Email address (default: $EMAIL)"
@@ -106,7 +108,7 @@ function usage(){
     echo
 }
 
-while getopts 'de:f:l:cphrot:' OPT; do
+while getopts 'de:f:l:cphront:' OPT; do
     case "$OPT" in
         d) DEBUG='yes'
         ;;
@@ -123,6 +125,8 @@ while getopts 'de:f:l:cphrot:' OPT; do
         r) RESTART_SERVICES='yes'
         ;;
         o) INCLUDE_OPTIONAL='yes'
+        ;;
+        n) EXCLUDE_RECOMMENDS='yes'
         ;;
         t) ZYPPER_UPDATE_TYPE="$OPTARG"
         ;;
@@ -198,10 +202,14 @@ case "$START_UPDATE" in
             if [ x"$INCLUDE_OPTIONAL" == x"yes" ] && [ x"$ZYPPER_UPDATE_TYPE" != x"package" ]; then
                 OPTIONAL="--with-optional"
             fi
+            NO_RECOMMENDS=""
+            if [ x"$EXCLUDE_RECOMMENDS" == x"yes" ]; then
+                NO_RECOMMENDS="--no-recommends"
+            fi
             if [ "$UPDATETYPE" == "patch" ] && [ "$OPTIONAL" == "--with-optional" ] ; then
-                $ZYPPER --non-interactive --terse $UPDATETYPE --no-confirm $OPTIONAL --skip-interactive 2>"$TMPFILE" 1>/dev/null
+                $ZYPPER --non-interactive --terse $UPDATETYPE --no-confirm $OPTIONAL $NO_RECOMMENDS --skip-interactive 2>"$TMPFILE" 1>/dev/null
             else
-                $ZYPPER --non-interactive --terse up --no-confirm -t $UPDATETYPE $OPTIONAL --skip-interactive 2>"$TMPFILE" 1>/dev/null
+                $ZYPPER --non-interactive --terse up --no-confirm -t $UPDATETYPE $OPTIONAL $NO_RECOMMENDS --skip-interactive 2>"$TMPFILE" 1>/dev/null
             fi
             ZYPP_RET=$(echo $?)
             case "$ZYPP_RET" in

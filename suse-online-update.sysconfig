@@ -113,3 +113,12 @@ IGNORE_SERVICES_FROM_RESTART='dbus udev'
 #
 INCLUDE_OPTIONAL='no'
 
+## Type:     yesno
+## Default:  no
+#
+# Exclude recommends packages
+#
+# If enabled, the script adds the "--no-recommends" parameter
+# when calling zypper to install updates w/o recommended packages.
+#
+EXCLUDE_RECOMMENDS="no"
