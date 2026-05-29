@@ -53,6 +53,7 @@ RESTART_SERVICES='no'
 INCLUDE_OPTIONAL='no'
 IGNORE_SERVICES_FROM_RESTART='dbus udev'
 EXCLUDE_RECOMMENDS='no'
+INTERACTIVE_MODE='non_interactive'
 ##################################################
 LOGDIR=$(dirname "$LOGFILE")
 LOGNAME='suse-online-update'
@@ -97,6 +98,7 @@ function usage(){
     echo "       -r             : restart services (default: $RESTART_SERVICES)"
     echo "       -o             : install optional updates (default: $INCLUDE_OPTIONAL)"
     echo "       -n             : install w/o recommended packages (default: $EXCLUDE_RECOMMENDS)"
+    echo "       -i <mode>      : use non interactive global option (default: $INTERACTIVE_MODE)"
     echo "       -t <type>      : use 'type' for $ZYPPER update command (default: $ZYPPER_UPDATE_TYPE)"
     echo "                        supported types: patch, package, pattern, product, srcpackage"
     echo "       -e <email>     : send error messages to this Email address (default: $EMAIL)"
@@ -108,7 +110,7 @@ function usage(){
     echo
 }
 
-while getopts 'de:f:l:cphront:' OPT; do
+while getopts 'de:f:l:cphront:i:' OPT; do
     case "$OPT" in
         d) DEBUG='yes'
         ;;
@@ -127,6 +129,8 @@ while getopts 'de:f:l:cphront:' OPT; do
         o) INCLUDE_OPTIONAL='yes'
         ;;
         n) EXCLUDE_RECOMMENDS='yes'
+        ;;
+        i) INTERACTIVE_MODE="$OPTARGS"
         ;;
         t) ZYPPER_UPDATE_TYPE="$OPTARG"
         ;;
@@ -198,6 +202,18 @@ case "$START_UPDATE" in
                     LOG "ERROR: Please set a correct value for ZYPPER_UPDATE_TYPE in $DISTCONFIG. Found: $ZYPPER_UPDATE_TYPE; using 'patch' for now"
                 ;;
             esac
+            case "$INTERACTIVE_MODE" in
+                'non_interactive')
+                    MODE="--non-interactive"
+                ;;
+                'include_reboot')
+                    MODE="--non-interactive-include-reboot-patches"
+                ;;
+                *)
+                    MODE="--non-interactive"
+                    LOG "ERROR: Please set a correct value for INTERACTIVE_MODE in $DISTCONFIG. Found: $INTERACTIVE_MODE; using 'non_interactive; for now"
+                ;;
+            esac
             OPTIONAL=""
             if [ x"$INCLUDE_OPTIONAL" == x"yes" ] && [ x"$ZYPPER_UPDATE_TYPE" != x"package" ]; then
                 OPTIONAL="--with-optional"
@@ -207,9 +223,9 @@ case "$START_UPDATE" in
                 NO_RECOMMENDS="--no-recommends"
             fi
             if [ "$UPDATETYPE" == "patch" ] && [ "$OPTIONAL" == "--with-optional" ] ; then
-                $ZYPPER --non-interactive --terse $UPDATETYPE --no-confirm $OPTIONAL $NO_RECOMMENDS --skip-interactive 2>"$TMPFILE" 1>/dev/null
+                $ZYPPER $MODE --terse $UPDATETYPE --no-confirm $OPTIONAL $NO_RECOMMENDS --skip-interactive 2>"$TMPFILE" 1>/dev/null
             else
-                $ZYPPER --non-interactive --terse up --no-confirm -t $UPDATETYPE $OPTIONAL $NO_RECOMMENDS --skip-interactive 2>"$TMPFILE" 1>/dev/null
+                $ZYPPER $MODE --terse up --no-confirm -t $UPDATETYPE $OPTIONAL $NO_RECOMMENDS --skip-interactive 2>"$TMPFILE" 1>/dev/null
             fi
             ZYPP_RET=$(echo $?)
             case "$ZYPP_RET" in

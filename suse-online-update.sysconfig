@@ -122,3 +122,12 @@ INCLUDE_OPTIONAL='no'
 # when calling zypper to install updates w/o recommended packages.
 #
 EXCLUDE_RECOMMENDS="no"
+
+## Type:     string
+## Default:  non_interactive
+#
+# Call zypper in specific interactive mode.
+# Default global option is '--non-interactive'.
+# You can change to value "include_reboot" that use switch '--non-interactive-include-reboot-patches'.
+#
+INTERACTIVE_MODE="non_interactive"
